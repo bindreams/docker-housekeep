@@ -1,0 +1,22 @@
+[project]
+name = "docker-housekeep"
+version = "0.1.0"
+authors = [
+    { name = "Anna Zhukova" }
+]
+description = "Automatically remove least recently unused docker images."
+
+requires-python = ">=3.10"
+dependencies = [
+	"requests",
+]
+
+[project.scripts]
+docker-housekeep = "docker-housekeep.__main__:main"
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = "missing-function-docstring, too-many-arguments, too-many-locals"
+max-line-length = 120
+
+[tool.black]
+line-length = 120
