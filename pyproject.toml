@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-docker-housekeep = "docker-housekeep.__main__:main"
+docker-housekeep = "docker_housekeep.__main__:main"
 
 [tool.pylint.'MESSAGES CONTROL']
 disable = "missing-function-docstring, too-many-arguments, too-many-locals"
