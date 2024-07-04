@@ -12,28 +12,17 @@ logger = logging.getLogger("docker_housekeep")
 
 _session = Session()
 
-
-def _request(location, arguments: dict, stream=False):
-    host = quote("/var/run/docker.sock", safe="")
-    url = f"http+unix://{host}/{location}"
-
-    url_args = []
-    for argname, argval in arguments.values():
-        url_args.append(f"{argname}={argval}")
-
-    if len(url_args) > 0:
-        url += "?" + "&".join(url_args)
-
-    logger.debug("Socket request: %s", url)
-    return _session.get(url, stream=stream)
+SOCKET_PATH = "/var/run/docker.sock"
+SOCKET_URL = f"http+unix://{quote(SOCKET_PATH, safe='')}"
 
 
-def query(location):
-    response = _request(location, {})
+def get(location):
+    response = _session.get(SOCKET_URL + location)
+    response.raise_for_status()
     return json.loads(response.text)
 
 
-def events(
+def get_events(
     *,
     since: datetime | None = None,
     until: datetime | None = None,
@@ -50,7 +39,8 @@ def events(
     if filters is not None:
         arguments["filters"] = quote(json.dumps(filters))
 
-    response = _request("events", arguments=arguments, stream=True)
+    response = _session.get(f"{SOCKET_URL}/events", params=arguments, stream=True)
+    response.raise_for_status()
 
     for line in response.iter_lines():
         if line == "":
@@ -59,3 +49,19 @@ def events(
 
         decoded_line = line.decode("utf-8")
         yield json.loads(decoded_line)
+
+
+def get_container(id: str):
+    response = _session.get(f"{SOCKET_URL}/containers/{id}/json")
+    if response.status_code == 404:
+        return None
+
+    response.raise_for_status()
+    return json.loads(response.text)
+
+
+def delete_image(id: str):
+    response = _session.delete(f"{SOCKET_URL}/images/{id}")
+    response.raise_for_status()
+
+    return json.loads(response.text)
