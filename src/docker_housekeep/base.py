@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
+import requests
 import yaml
 
 from . import dockerapi
@@ -49,10 +50,24 @@ def process_event(event: dict, state: State):
 
 
 def sweep(state: State, max_age: timedelta):
-    cutoff = datetime.now() - max_age
+    cutoff = datetime.now().astimezone() - max_age
 
-    for image, last_used in state.last_used.values():
+    for image, last_used in state.last_used.items():
         if last_used < cutoff:
             logger.info("deleting: %s", image)
-            response = dockerapi.delete_image(image)
-            logger.debug(yaml.dump(response).rstrip())
+
+            try:
+                response = dockerapi.delete_image(image)
+                logger.debug(yaml.dump(response).rstrip())
+            except requests.HTTPError as e:
+                status = e.response.status_code
+                data = e.response.json()
+
+                logger.debug("delete error %s: %s", status, data["message"])
+
+                if status == 404:
+                    logger.warning("cannot delete %s: no such image", image)
+                elif status == 409:
+                    logger.error("cannot delete %s: %s", image, data["message"])
+                else:
+                    raise
