@@ -1,6 +1,6 @@
 import logging
 
-import colorama as co
+import colorama
 
 
 class MultiLineFormatter(logging.Formatter):
@@ -70,9 +70,9 @@ class FriendlyFormatter(MultiLineFormatter, logging.Formatter):
             else:
                 record.levelname = record.levelname.title()
 
-                style = co.Fore.RED
+                style = colorama.Fore.RED
                 if record.levelno <= logging.WARNING:
-                    style = co.Fore.YELLOW
+                    style = colorama.Fore.YELLOW
 
                 self._style._fmt = f"{timestamp}{style}%(levelname)s: %(message)s"
         else:
@@ -88,3 +88,36 @@ class FriendlyFormatter(MultiLineFormatter, logging.Formatter):
                 self._style._fmt = f"{timestamp}%(name)s | %(levelname)s | %(message)s"
 
         return super().format(record)
+
+
+LOG_DATEFMT = "[%Y-%m-%d %H:%M:%S]"
+
+
+def init_logging(verbose=False, timestamps=False):
+    colorama.init(autoreset=True)
+    handler = logging.StreamHandler()
+
+    if not verbose:
+        level = logging.INFO
+        handler.setFormatter(
+            FriendlyFormatter(
+                rootname="docker_housekeep",
+                datefmt=LOG_DATEFMT if timestamps else None,
+            )
+        )
+    else:
+        level = logging.DEBUG
+
+        timestamp_fmt = "%(asctime)s "
+        if not timestamps:
+            timestamp_fmt = ""
+
+        handler.setFormatter(
+            MultiLineFormatter(
+                fmt=f"{timestamp_fmt}%(name)s | %(levelname)s | %(message)s",
+                indentfunc=lambda width: f"{'| ':>{width}}",
+                datefmt=LOG_DATEFMT,
+            )
+        )
+
+    logging.basicConfig(level=level, handlers=(handler,), force=True)

@@ -9,15 +9,13 @@ import pytimeparse
 import sdnotify
 
 from . import dockerapi
-from .base import process_event
+from .base import process_event, sweep
 from .daemon import install_daemon
-from .feedback import FriendlyFormatter, MultiLineFormatter
+from .feedback import init_logging
 from .state import State, dump_state, load_state
 
 logger = logging.getLogger("docker_housekeep")
 systemd_notifier = sdnotify.SystemdNotifier()
-
-LOG_DATEFMT = "[%Y-%m-%d %H:%M:%S]"
 
 
 def handle_events(fd, state: State):
@@ -61,6 +59,24 @@ def timedelta_argument(string: str):
 
 
 def cli():
+    # Shared arguments between subcommands
+    def add_argument_verbosity(p):
+        p.add_argument(
+            "-v",
+            "--verbose",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="enable verbose output (default: off)",
+        )
+
+    def add_argument_max_age(p):
+        p.add_argument(
+            "--max-age",
+            type=timedelta_argument,
+            required=True,
+            help="maxiumum allowed age for docker containers, like '3d12h'; older images will be deleted during sweep",
+        )
+
     parser = ArgumentParser()
     parser.add_argument(
         "--log-timestamps", action=argparse.BooleanOptionalAction, default=False, help="print timestamps in logs"
@@ -80,16 +96,13 @@ def cli():
     )
 
     watch_parser = subcommands.add_parser("watch")
-    watch_parser.add_argument("-v", "--verbose", action="count", default=0, help="verbosity level")
     watch_parser.add_argument("--state-file", type=UpdateOrCreateFile(encoding="utf-8"), default="state.json")
+    add_argument_verbosity(watch_parser)
 
     sweep_parser = subcommands.add_parser("sweep")
     sweep_parser.add_argument("--state-file", type=argparse.FileType("r", encoding="utf-8"), default="state.json")
-    sweep_parser.add_argument(
-        "--max-age",
-        type=timedelta_argument,
-        help="maxiumum allowed age for docker containers, like '3d12h'. Older images will be deleted.",
-    )
+    add_argument_max_age(sweep_parser)
+    add_argument_verbosity(sweep_parser)
 
     return parser
 
@@ -98,35 +111,23 @@ def main():
     colorama.init(autoreset=True)
     args = cli().parse_args()
 
-    handler = logging.StreamHandler()
-    handler.setFormatter(
-        FriendlyFormatter(
-            rootname="docker_housekeep",
-            datefmt=LOG_DATEFMT if args.log_timestamps else None,
-        )
-    )
-    logging.basicConfig(level=logging.INFO, handlers=(handler,))
+    init_logging(timestamps=args.log_timestamps)
 
     if args.subcommand == "daemon":
         if args.daemon_subcommand == "install":
             install_daemon(enable=args.enable)
         else:
             raise RuntimeError("unhandled subcommand of 'daemon'")
-
     elif args.subcommand == "watch":
-        if args.verbose > 0:
-            handler = logging.StreamHandler()
-            handler.setFormatter(
-                MultiLineFormatter(
-                    fmt="%(asctime)s%(name)s | %(levelname)s | %(message)s",
-                    indentfunc=lambda width: f"{'| ':>{width}}",
-                    datefmt=LOG_DATEFMT + " " if args.log_timestamps else None,
-                )
-            )
-            logging.basicConfig(level=logging.DEBUG, handlers=(handler,), force=True)
+        init_logging(verbose=args.verbose, timestamps=args.log_timestamps)
 
         state = load_state(args.state_file)
         handle_events(args.state_file, state)
+    elif args.subcommand == "sweep":
+        init_logging(verbose=args.verbose, timestamps=args.log_timestamps)
+
+        state = load_state(args.state_file)
+        sweep(state, args.max_age)
     else:
         raise RuntimeError("unhandled subcommand")
 
