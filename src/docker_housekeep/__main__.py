@@ -36,16 +36,6 @@ async def async_iterate(sync_iterable):
         yield value
 
 
-def async_generator(func):
-    """A decorator that converts a generator function into an async generator."""
-
-    async def wrapper(*args, **kwargs):
-        async for item in async_iterate(func(*args, **kwargs)):
-            yield item
-
-    return wrapper
-
-
 async def handle_events(state: State, state_fd):
     events = dockerapi.get_events(since=state.timestamp or datetime.fromtimestamp(0))
     logger.info("watching docker events")
