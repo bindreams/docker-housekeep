@@ -58,6 +58,12 @@ def timedelta_argument(string: str):
     return timedelta(seconds=seconds)
 
 
+def validate_timedelta_argument(string: str):
+    """Same as `timedelta_argument`, except discards parsed result and returns the original string."""
+    timedelta_argument(string)
+    return string
+
+
 def cli():
     # Shared arguments between subcommands
     def add_argument_verbosity(p):
@@ -69,13 +75,7 @@ def cli():
             help="enable verbose output (default: off)",
         )
 
-    def add_argument_max_age(p):
-        p.add_argument(
-            "--max-age",
-            type=timedelta_argument,
-            required=True,
-            help="maxiumum allowed age for docker containers, like '3d12h'; older images will be deleted during sweep",
-        )
+    max_age_help = "maxiumum allowed age for docker containers, like '3d12h'; older images will be deleted during sweep"
 
     parser = ArgumentParser()
     parser.add_argument(
@@ -94,6 +94,7 @@ def cli():
         default=True,
         help="start the service and enable it at startup",
     )
+    daemon_install_parser.add_argument("--max-age", type=validate_timedelta_argument, required=True, help=max_age_help)
 
     watch_parser = subcommands.add_parser("watch")
     watch_parser.add_argument("--state-file", type=UpdateOrCreateFile(encoding="utf-8"), default="state.json")
@@ -101,7 +102,7 @@ def cli():
 
     sweep_parser = subcommands.add_parser("sweep")
     sweep_parser.add_argument("--state-file", type=argparse.FileType("r", encoding="utf-8"), default="state.json")
-    add_argument_max_age(sweep_parser)
+    sweep_parser.add_argument("--max-age", type=timedelta_argument, required=True, help=max_age_help)
     add_argument_verbosity(sweep_parser)
 
     return parser
@@ -115,7 +116,7 @@ def main():
 
     if args.subcommand == "daemon":
         if args.daemon_subcommand == "install":
-            install_daemon(enable=args.enable)
+            install_daemon(enable=args.enable, max_age=args.max_age)
         else:
             raise RuntimeError("unhandled subcommand of 'daemon'")
     elif args.subcommand == "watch":
