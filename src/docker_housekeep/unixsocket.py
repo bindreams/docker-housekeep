@@ -5,7 +5,6 @@ https://github.com/docker/docker-py/blob/master/docker/transport/unixconn.py
 """
 
 import socket
-from http.client import HTTPConnection
 
 import requests
 import requests.adapters
