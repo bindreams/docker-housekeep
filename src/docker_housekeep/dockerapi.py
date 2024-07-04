@@ -19,7 +19,7 @@ SOCKET_URL = f"http+unix://{quote(SOCKET_PATH, safe='')}"
 def get(location):
     response = _session.get(SOCKET_URL + location)
     response.raise_for_status()
-    return json.loads(response.text)
+    return response.json()
 
 
 def get_events(
@@ -57,11 +57,11 @@ def get_container(id: str):
         return None
 
     response.raise_for_status()
-    return json.loads(response.text)
+    return response.json()
 
 
 def delete_image(id: str):
     response = _session.delete(f"{SOCKET_URL}/images/{id}")
     response.raise_for_status()
 
-    return json.loads(response.text)
+    return response.json()
