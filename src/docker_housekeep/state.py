@@ -11,14 +11,15 @@ class State:
     last_used: dict = dataclasses.field(default_factory=dict)
 
 
-def load_state(fd):
+def load(fd):
     result = State()
 
+    pos = fd.tell()
     fd.seek(0, os.SEEK_END)
     if fd.tell() == 0:
         return result
 
-    fd.seek(0)
+    fd.seek(pos)
     state_data = json.load(fd)
     result.timestamp = datetime.fromisoformat(state_data["timestamp"])
     result.last_used = state_data["last_used"]
@@ -28,12 +29,10 @@ def load_state(fd):
     return result
 
 
-def dump_state(state: State, fd):
+def dump(state: State, fd):
     def default(obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
         return json.JSONEncoder().default(obj)
 
-    fd.seek(0)
     json.dump(dataclasses.asdict(state), fd, default=default, indent="\t")
-    fd.truncate()

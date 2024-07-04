@@ -16,12 +16,6 @@ SOCKET_PATH = "/var/run/docker.sock"
 SOCKET_URL = f"http+unix://{quote(SOCKET_PATH, safe='')}"
 
 
-def get(location):
-    response = _session.get(SOCKET_URL + location)
-    response.raise_for_status()
-    return response.json()
-
-
 def get_events(
     *,
     since: datetime | None = None,

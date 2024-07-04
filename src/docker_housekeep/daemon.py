@@ -19,12 +19,6 @@ ExecStart={executable} watch --state-file /var/lib/docker-housekeep/state.json
 WantedBy=multi-user.target
 """
 
-CRON_COMMAND_TEMPLATE = (
-    "0  6    * * *   root    "
-    "{executable} --log-timestamps sweep --max-age {max_age} --state-file /var/lib/docker-housekeep/state.json "
-    ">> /var/log/docker-housekeep/sweep.log 2>&1"
-)
-
 
 def install_daemon(*, max_age: str, enable=True):
     # Find the docker-housekeep executable
@@ -49,9 +43,3 @@ def install_daemon(*, max_age: str, enable=True):
         run(["systemctl", "enable", "docker-housekeep.service"], check=True)
         run(["systemctl", "start", "docker-housekeep.service"], check=True)
         logger.info("daemon started")
-
-    # Cron sweep job ===================================================================================================
-    Path("/var/log/docker-housekeep").mkdir(parents=True, exist_ok=True)
-
-    with open("/etc/cron.d/docker-housekeep-sweep", "w", encoding="utf-8") as fd:
-        fd.write(CRON_COMMAND_TEMPLATE.format(executable=shlex.quote(executable_path), max_age=shlex.quote(max_age)))

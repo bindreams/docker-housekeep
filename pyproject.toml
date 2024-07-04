@@ -12,7 +12,8 @@ dependencies = [
 	"PyYAML",
 	"colorama",
 	"sdnotify",
-	"pytimeparse"
+	"pytimeparse",
+	"croniter",
 ]
 
 [project.scripts]
