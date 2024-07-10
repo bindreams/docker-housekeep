@@ -35,7 +35,7 @@ def install_daemon(*, enable=True):
     Path("/var/lib/docker-housekeep").mkdir(parents=True, exist_ok=True)
 
     with open("/etc/systemd/system/docker-housekeep.service", "w", encoding="utf-8") as fd:
-        fd.write(SYSTEMD_SERVICE_TEMPLATE.format(executable=shlex.quote(executable_path)))
+        fd.write(SYSTEMD_SERVICE_TEMPLATE.format(executable=shlex.quote(str(executable_path))))
 
     logger.info("daemon installed at /etc/systemd/system/docker-housekeep.service")
 
