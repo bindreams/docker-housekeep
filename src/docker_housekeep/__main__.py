@@ -217,7 +217,7 @@ def main():
 
     if args.subcommand == "daemon":
         if args.daemon_subcommand == "install":
-            install_daemon(enable=args.enable, max_age=args.max_age)
+            install_daemon(enable=args.enable)
         else:
             raise RuntimeError("unhandled subcommand of 'daemon'")
     elif args.subcommand == "watch":

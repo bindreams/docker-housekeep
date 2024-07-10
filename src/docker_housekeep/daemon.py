@@ -20,7 +20,7 @@ WantedBy=multi-user.target
 """
 
 
-def install_daemon(*, max_age: str, enable=True):
+def install_daemon(*, enable=True):
     # Find the docker-housekeep executable
     executable_path = Path(sys.executable).parent / "docker-housekeep"
     if not executable_path.exists():
